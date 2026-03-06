@@ -1,0 +1,1 @@
+const http = require('http'); const server = http.createServer((req, res) => { res.writeHead(200); res.end('OMNIVERSE AKTIF'); }); server.listen(3000, () => { console.log('[OMNIVERSE SYSTEM] Server beroperasi di port 3000'); });

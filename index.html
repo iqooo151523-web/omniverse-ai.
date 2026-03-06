@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omniverse AI - Ruang Kendali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Desain Scrollbar transparan untuk estetika masa depan */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        body { background-color: #131314; color: #e3e3e3; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-[#1e1e20] border-b border-gray-800 p-4 flex justify-between items-center shadow-md z-10">
+        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            OMNIVERSE AI
+        </h1>
+        <div class="text-xs text-green-400 flex items-center">
+            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span> Sistem Online
+        </div>
+    </header>
+
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 pb-32">
+        <div class="flex justify-start">
+            <div class="bg-[#1e1e20] text-gray-200 p-4 rounded-2xl rounded-tl-none max-w-[85%] border border-gray-700 shadow-sm">
+                Salam, Kreator. Saya adalah mesin AI Anda. Sistem Node.js dan Gemini API telah terhubung. Apa yang ingin Anda perintahkan hari ini?
+            </div>
+        </div>
+    </main>
+
+    <footer class="absolute bottom-0 w-full bg-gradient-to-t from-[#131314] via-[#131314] to-transparent pt-10 pb-6 px-4">
+        <div class="max-w-4xl mx-auto relative flex items-end bg-[#1e1e20] rounded-2xl border border-gray-700 shadow-xl overflow-hidden focus-within:border-gray-500 transition-colors">
+            <textarea id="prompt-input" rows="1" class="w-full bg-transparent text-white p-4 outline-none resize-none max-h-32 overflow-y-auto" placeholder="Ketik perintah untuk OMNIVERSE..."></textarea>
+            <button id="send-btn" class="p-4 text-blue-500 hover:text-blue-400 transition-colors disabled:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        const inputField = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatContainer = document.getElementById('chat-container');
+
+        // Fitur Auto-Resize Kotak Teks
+        inputField.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Eksekusi saat tombol Enter ditekan
+        inputField.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            // 1. Tampilkan Pesan User di Layar
+            appendMessage(text, 'user');
+            inputField.value = '';
+            inputField.style.height = 'auto';
+            
+            // 2. Tampilkan Indikator Loading
+            const loadingId = appendMessage('Memproses triliunan parameter...', 'ai', true);
+
+            try {
+                // 3. Tembak Data ke Backend Node.js Anda (Port 3000)
+                const response = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: text })
+                });
+
+                if (!response.ok) throw new Error("Gagal terhubung ke Mesin Inti.");
+
+                const data = await response.json();
+                
+                // 4. Hapus Loading & Tampilkan Jawaban Asli AI
+                document.getElementById(loadingId).remove();
+                appendMessage(data.reply, 'ai');
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                appendMessage('⚠️ KESALAHAN SISTEM: ' + error.message, 'error');
+            }
+        }
+
+        // Fungsi Cetak Gelembung Chat
+        function appendMessage(text, sender, isLoading = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const msgBox = document.createElement('div');
+            // Warna berbeda untuk User dan AI
+            msgBox.className = `p-4 rounded-2xl max-w-[85%] whitespace-pre-wrap ${
+                sender === 'user' 
+                ? 'bg-[#2a2a2c] text-white rounded-tr-none border border-gray-700' 
+                : sender === 'error'
+                ? 'bg-red-900/40 text-red-400 border border-red-800'
+                : 'bg-[#1e1e20] text-gray-200 rounded-tl-none border border-gray-700 shadow-sm'
+            }`;
+            
+            if (isLoading) {
+                wrapper.id = 'loading-' + Date.now();
+                msgBox.classList.add('animate-pulse', 'text-gray-500');
+            }
+
+            msgBox.textContent = text;
+            wrapper.appendChild(msgBox);
+            chatContainer.appendChild(wrapper);
+            
+            // Scroll otomatis ke paling bawah
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+            
+            return wrapper.id;
+        }
+    </script>
+</body>
+</html>
